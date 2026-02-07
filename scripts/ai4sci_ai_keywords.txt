@@ -1,0 +1,13 @@
+# AI keywords for supplementary source search (one per line).
+machine learning
+deep learning
+neural network
+transformer
+graph neural network
+reinforcement learning
+diffusion model
+large language model
+foundation model
+physics-informed
+scientific machine learning
+surrogate model
