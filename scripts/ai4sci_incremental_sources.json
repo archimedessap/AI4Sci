@@ -1,0 +1,199 @@
+{
+  "version": "1",
+  "rss": [
+    {
+      "id": "nature",
+      "name": "Nature",
+      "url": "https://www.nature.com/nature.rss",
+      "sourceName": "Nature",
+      "assumeScientificContext": true,
+      "maxItems": 25
+    },
+    {
+      "id": "nature_methods",
+      "name": "Nature Methods",
+      "url": "https://www.nature.com/nmeth.rss",
+      "sourceName": "Nature Methods",
+      "assumeScientificContext": true,
+      "maxItems": 25
+    },
+    {
+      "id": "nature_biotechnology",
+      "name": "Nature Biotechnology",
+      "url": "https://www.nature.com/nbt.rss",
+      "sourceName": "Nature Biotechnology",
+      "assumeScientificContext": true,
+      "domainHints": ["bio_genomics", "bio_protein", "medicine"],
+      "maxItems": 25
+    },
+    {
+      "id": "nature_communications",
+      "name": "Nature Communications",
+      "url": "https://www.nature.com/ncomms.rss",
+      "sourceName": "Nature Communications",
+      "assumeScientificContext": true,
+      "maxItems": 25
+    },
+    {
+      "id": "nature_comp_sci",
+      "name": "Nature Computational Science",
+      "url": "https://www.nature.com/natcomputsci.rss",
+      "sourceName": "Nature Computational Science",
+      "assumeScientificContext": true,
+      "maxItems": 25
+    },
+    {
+      "id": "nature_machine_intelligence",
+      "name": "Nature Machine Intelligence",
+      "url": "https://www.nature.com/natmachintell.rss",
+      "sourceName": "Nature Machine Intelligence",
+      "assumeScientificContext": false,
+      "requireDomainMatch": true,
+      "maxItems": 25
+    },
+    {
+      "id": "science",
+      "name": "Science",
+      "url": "https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=science",
+      "sourceName": "Science",
+      "assumeScientificContext": true,
+      "maxItems": 25
+    },
+    {
+      "id": "science_advances",
+      "name": "Science Advances",
+      "url": "https://www.science.org/action/showFeed?type=etoc&feed=rss&jc=sciadv",
+      "sourceName": "Science Advances",
+      "assumeScientificContext": true,
+      "maxItems": 25
+    },
+    {
+      "id": "cell",
+      "name": "Cell",
+      "url": "https://www.cell.com/cell/current.rss",
+      "sourceName": "Cell",
+      "assumeScientificContext": true,
+      "domainHints": ["bio_protein", "bio_genomics", "bio_systems", "medicine"],
+      "maxItems": 25
+    },
+    {
+      "id": "lancet",
+      "name": "The Lancet",
+      "url": "https://www.thelancet.com/rssfeed/lancet_current.xml",
+      "sourceName": "The Lancet",
+      "assumeScientificContext": true,
+      "domainHints": ["medicine"],
+      "maxItems": 25
+    },
+    {
+      "id": "nejm",
+      "name": "The New England Journal of Medicine",
+      "url": "https://www.nejm.org/action/showFeed?type=etoc&feed=rss&jc=nejm",
+      "sourceName": "The New England Journal of Medicine",
+      "assumeScientificContext": true,
+      "domainHints": ["medicine"],
+      "maxItems": 25
+    }
+  ],
+  "arxiv": [
+    {
+      "id": "arxiv_qbio_bm",
+      "name": "arXiv q-bio.BM",
+      "query": "cat:q-bio.BM",
+      "sourceName": "arXiv q-bio.BM",
+      "assumeScientificContext": true,
+      "domainHints": ["bio_protein"],
+      "maxItems": 40
+    },
+    {
+      "id": "arxiv_qbio_gn",
+      "name": "arXiv q-bio.GN",
+      "query": "cat:q-bio.GN",
+      "sourceName": "arXiv q-bio.GN",
+      "assumeScientificContext": true,
+      "domainHints": ["bio_genomics"],
+      "maxItems": 40
+    },
+    {
+      "id": "arxiv_qbio_mn",
+      "name": "arXiv q-bio.MN",
+      "query": "cat:q-bio.MN",
+      "sourceName": "arXiv q-bio.MN",
+      "assumeScientificContext": true,
+      "domainHints": ["bio_systems"],
+      "maxItems": 40
+    },
+    {
+      "id": "arxiv_phys_bioph",
+      "name": "arXiv physics.bio-ph",
+      "query": "cat:physics.bio-ph",
+      "sourceName": "arXiv physics.bio-ph",
+      "assumeScientificContext": true,
+      "domainHints": ["bio_systems"],
+      "maxItems": 40
+    },
+    {
+      "id": "arxiv_condmat_mtrl",
+      "name": "arXiv cond-mat.mtrl-sci",
+      "query": "cat:cond-mat.mtrl-sci",
+      "sourceName": "arXiv cond-mat.mtrl-sci",
+      "assumeScientificContext": true,
+      "domainHints": ["mat_sci"],
+      "maxItems": 40
+    },
+    {
+      "id": "arxiv_phys_geoph",
+      "name": "arXiv physics.geo-ph",
+      "query": "cat:physics.geo-ph",
+      "sourceName": "arXiv physics.geo-ph",
+      "assumeScientificContext": true,
+      "domainHints": ["geophysics"],
+      "maxItems": 40
+    },
+    {
+      "id": "arxiv_astroph_co",
+      "name": "arXiv astro-ph.CO",
+      "query": "cat:astro-ph.CO",
+      "sourceName": "arXiv astro-ph.CO",
+      "assumeScientificContext": true,
+      "domainHints": ["physics_cosmo"],
+      "maxItems": 40
+    },
+    {
+      "id": "arxiv_astroph_ep",
+      "name": "arXiv astro-ph.EP",
+      "query": "cat:astro-ph.EP",
+      "sourceName": "arXiv astro-ph.EP",
+      "assumeScientificContext": true,
+      "domainHints": ["physics_planetary"],
+      "maxItems": 40
+    },
+    {
+      "id": "arxiv_eess_sy",
+      "name": "arXiv eess.SY",
+      "query": "cat:eess.SY",
+      "sourceName": "arXiv eess.SY",
+      "assumeScientificContext": true,
+      "domainHints": ["eng_control"],
+      "maxItems": 40
+    },
+    {
+      "id": "arxiv_phys_flu",
+      "name": "arXiv physics.flu-dyn",
+      "query": "cat:physics.flu-dyn",
+      "sourceName": "arXiv physics.flu-dyn",
+      "assumeScientificContext": true,
+      "domainHints": ["physics_fluid"],
+      "maxItems": 40
+    },
+    {
+      "id": "arxiv_phys_medph",
+      "name": "arXiv physics.med-ph",
+      "query": "cat:physics.med-ph",
+      "sourceName": "arXiv physics.med-ph",
+      "assumeScientificContext": true,
+      "domainHints": ["med_imaging"],
+      "maxItems": 40
+    }
+  ]
+}

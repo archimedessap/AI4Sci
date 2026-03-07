@@ -1,0 +1,176 @@
+{
+  "bio_protein": [
+    "protein",
+    "proteins",
+    "antibody",
+    "antibodies",
+    "enzyme",
+    "enzymes",
+    "peptide",
+    "peptides",
+    "protein folding"
+  ],
+  "bio_genomics": [
+    "genomics",
+    "genome",
+    "genomic",
+    "transcriptome",
+    "transcriptomic",
+    "sequencing",
+    "single-cell",
+    "epigenome",
+    "epigenomic"
+  ],
+  "bio_systems": [
+    "systems biology",
+    "molecular network",
+    "gene regulatory network",
+    "cell signaling",
+    "pathway modelling",
+    "pathway modeling"
+  ],
+  "bio_metagenomics": [
+    "metagenomics",
+    "metagenomic",
+    "microbiome",
+    "microbial community"
+  ],
+  "medicine": [
+    "clinical",
+    "patient",
+    "patients",
+    "therapy",
+    "treatment",
+    "diagnosis",
+    "diagnostic",
+    "medical"
+  ],
+  "med_imaging": [
+    "medical imaging",
+    "radiology",
+    "ct scan",
+    "mri",
+    "ultrasound",
+    "x-ray",
+    "histopathology",
+    "pathology image"
+  ],
+  "chem_qc": [
+    "quantum chemistry",
+    "electronic structure",
+    "density functional theory",
+    "ab initio",
+    "molecular orbital"
+  ],
+  "chem_catalysis": [
+    "catalysis",
+    "catalyst",
+    "catalytic",
+    "reaction network",
+    "reaction pathway"
+  ],
+  "mat_sci": [
+    "materials science",
+    "material discovery",
+    "materials discovery",
+    "crystal structure",
+    "alloy",
+    "semiconductor",
+    "perovskite",
+    "battery material"
+  ],
+  "mat_nano": [
+    "nanomaterial",
+    "nanoparticle",
+    "nanostructure",
+    "2d material",
+    "quantum dot"
+  ],
+  "physics_cmp": [
+    "condensed matter",
+    "many-body",
+    "strongly correlated",
+    "phase transition",
+    "spin glass"
+  ],
+  "physics_cosmo": [
+    "cosmology",
+    "cosmological",
+    "dark matter",
+    "dark energy",
+    "cosmic microwave background",
+    "large-scale structure"
+  ],
+  "physics_astronomy": [
+    "astronomy",
+    "astronomical",
+    "galaxy",
+    "galaxies",
+    "stellar",
+    "telescope"
+  ],
+  "physics_astrophysics": [
+    "astrophysics",
+    "astrophysical",
+    "supernova",
+    "black hole"
+  ],
+  "physics_planetary": [
+    "planetary",
+    "planet formation",
+    "solar system",
+    "mars",
+    "venus",
+    "jupiter",
+    "saturn",
+    "lunar"
+  ],
+  "physics_astrobiology": [
+    "astrobiology",
+    "habitability",
+    "biosignature"
+  ],
+  "climate": [
+    "climate",
+    "climate change",
+    "meteorology",
+    "weather",
+    "atmospheric"
+  ],
+  "geophysics": [
+    "geophysics",
+    "geophysical",
+    "seismic",
+    "earthquake",
+    "subsurface",
+    "geology",
+    "geological"
+  ],
+  "earth_hydrology": [
+    "hydrology",
+    "hydrological",
+    "streamflow",
+    "runoff",
+    "watershed",
+    "flood"
+  ],
+  "physics_fluid": [
+    "fluid dynamics",
+    "turbulence",
+    "flow field",
+    "navier-stokes"
+  ],
+  "eng_control": [
+    "control engineering",
+    "control system",
+    "feedback control",
+    "model predictive control",
+    "process control"
+  ],
+  "eng_biomedical": [
+    "biomedical engineering",
+    "biosensor",
+    "medical device",
+    "prosthetic"
+  ]
+}

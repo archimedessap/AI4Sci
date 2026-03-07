@@ -34,6 +34,9 @@ def init_db(con: sqlite3.Connection) -> None:
 
         CREATE INDEX IF NOT EXISTS idx_papers_year ON papers(publication_year);
         CREATE INDEX IF NOT EXISTS idx_papers_cited ON papers(cited_by_count);
+        CREATE INDEX IF NOT EXISTS idx_papers_doi ON papers(doi);
+        CREATE INDEX IF NOT EXISTS idx_papers_arxiv ON papers(arxiv_id);
+        CREATE INDEX IF NOT EXISTS idx_papers_url ON papers(primary_url);
 
         CREATE TABLE IF NOT EXISTS paper_domains (
           openalex_id TEXT NOT NULL,

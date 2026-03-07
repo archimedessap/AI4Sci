@@ -1,4 +1,4 @@
-# Curated high-impact journals and major conferences for AI4Sci supplement search.
+# Curated high-impact journals for AI4Sci supplementary source search.
 # One source per line. Lines starting with # are ignored.
 
 # General high-impact journals
@@ -55,13 +55,12 @@ Medical Image Analysis
 Journal of Machine Learning Research
 IEEE Transactions on Pattern Analysis and Machine Intelligence
 
-# Major AI conferences
+# Major AI conferences (resolved from local source cache)
 Advances in Neural Information Processing Systems
 International Conference on Machine Learning
 International Conference on Learning Representations
 AAAI Conference on Artificial Intelligence
 International Joint Conference on Artificial Intelligence
-Conference on Uncertainty in Artificial Intelligence
 Artificial Intelligence and Statistics
 ACM SIGKDD Conference on Knowledge Discovery and Data Mining
 IEEE/CVF Conference on Computer Vision and Pattern Recognition
@@ -70,11 +69,6 @@ European Conference on Computer Vision
 Conference on Empirical Methods in Natural Language Processing
 Annual Meeting of the Association for Computational Linguistics
 North American Chapter of the Association for Computational Linguistics
-
-# Robotics / scientific automation
 International Conference on Robotics and Automation
 IEEE/RSJ International Conference on Intelligent Robots and Systems
-
-# Computational biology / bioinformatics conferences
-Intelligent Systems for Molecular Biology
 Research in Computational Molecular Biology

@@ -55,16 +55,51 @@ def main() -> int:
         help="Skip supplementary OpenAlex ingestion (keywords/journals).",
     )
     ap.add_argument(
+        "--skip-incremental",
+        action="store_true",
+        help="Skip direct-source incremental ingestion (arXiv + RSS/TOC).",
+    )
+    ap.add_argument(
         "--supplement-sources-file",
         type=Path,
         default=ROOT / "scripts" / "ai4sci_sources.txt",
-        help="Sources list for supplementary ingestion.",
+        help="Primary sources list for supplementary ingestion.",
+    )
+    ap.add_argument(
+        "--supplement-top-journals-file",
+        type=Path,
+        default=ROOT / "scripts" / "ai4sci_top_journals.txt",
+        help="Top-journal sources list for supplementary ingestion.",
     )
     ap.add_argument(
         "--supplement-ai-keywords-file",
         type=Path,
         default=ROOT / "scripts" / "ai4sci_ai_keywords.txt",
         help="AI keyword list for supplementary ingestion.",
+    )
+    ap.add_argument(
+        "--supplement-keywords-file",
+        type=Path,
+        default=ROOT / "scripts" / "ai4sci_conference_keywords.txt",
+        help="Conference/global keyword list for supplementary ingestion.",
+    )
+    ap.add_argument(
+        "--incremental-config",
+        type=Path,
+        default=ROOT / "scripts" / "ai4sci_incremental_sources.json",
+        help="Config JSON for direct incremental sources.",
+    )
+    ap.add_argument(
+        "--incremental-ai-keywords-file",
+        type=Path,
+        default=ROOT / "scripts" / "ai4sci_incremental_ai_keywords.txt",
+        help="AI keywords file for direct incremental sources.",
+    )
+    ap.add_argument(
+        "--incremental-lookback-hours",
+        type=int,
+        default=336,
+        help="Lookback window for direct incremental sources (default: 336h / 14d).",
     )
     ap.add_argument(
         "--skip-tags",
@@ -80,6 +115,11 @@ def main() -> int:
         "--skip-history",
         action="store_true",
         help="Skip writing web/data/progress_history.json snapshot.",
+    )
+    ap.add_argument(
+        "--skip-first-principles",
+        action="store_true",
+        help="Skip generating the first-principles lens and daily monitor artifacts.",
     )
     ap.add_argument(
         "--daily-updates",
@@ -134,12 +174,32 @@ def main() -> int:
             str(int(args.years)),
             "--sources-file",
             str(args.supplement_sources_file),
+            "--sources-file",
+            str(args.supplement_top_journals_file),
             "--ai-keywords-file",
             str(args.supplement_ai_keywords_file),
+            "--keywords-file",
+            str(args.supplement_keywords_file),
             "--no-export",
         ]
         if args.domains:
             cmd.extend(["--domains", args.domains])
+        run(cmd)
+
+    if not args.skip_incremental:
+        cmd = [
+            py,
+            str(ROOT / "scripts" / "ingest_incremental_sources.py"),
+            "--db",
+            str(args.db),
+            "--config",
+            str(args.incremental_config),
+            "--ai-keywords-file",
+            str(args.incremental_ai_keywords_file),
+            "--lookback-hours",
+            str(int(args.incremental_lookback_hours)),
+            "--no-export",
+        ]
         run(cmd)
 
     if not args.skip_tags:
@@ -162,6 +222,9 @@ def main() -> int:
 
     if not args.skip_history:
         run([py, str(ROOT / "scripts" / "update_progress_history.py")])
+
+    if not args.skip_first_principles:
+        run([py, str(ROOT / "scripts" / "analyze_first_principles_lens.py")])
 
     print("[done] update pipeline finished")
     return 0

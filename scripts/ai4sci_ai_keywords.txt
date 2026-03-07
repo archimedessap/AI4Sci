@@ -5,9 +5,4 @@ neural network
 transformer
 graph neural network
 reinforcement learning
-diffusion model
-large language model
-foundation model
 physics-informed
-scientific machine learning
-surrogate model

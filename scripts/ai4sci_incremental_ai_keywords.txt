@@ -1,0 +1,21 @@
+# Broader AI keywords for direct-source incremental ingestion.
+# One keyword per line. Lines starting with # are ignored.
+machine learning
+deep learning
+artificial intelligence
+neural network
+transformer
+graph neural network
+reinforcement learning
+physics-informed neural network
+physics-informed
+foundation model
+large language model
+language model
+generative model
+diffusion model
+representation learning
+self-supervised learning
+multimodal model
+neural operator
+surrogate model

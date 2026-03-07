@@ -7,8 +7,11 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
+    "update-incremental": "python3 ../scripts/ingest_incremental_sources.py",
+    "update-monitor": "python3 ../scripts/run_monitor_cycle.py --mode fast",
     "update-data": "python3 ../scripts/update_progress_openalex.py",
     "update-history": "python3 ../scripts/update_progress_history.py",
+    "update-first-principles": "python3 ../scripts/analyze_first_principles_lens.py",
     "update-updates": "python3 ../scripts/update_daily_updates.py",
     "update-all": "python3 ../scripts/update_all.py"
   },

@@ -31,6 +31,24 @@ python3 ../scripts/update_progress_openalex.py --only-missing
 - 数据文件：`data/daily_updates.json` + `data/daily_updates.md`
 - 页面：`/updates`
 
+## Monitor Cycle
+
+- 快速刷新：`npm run update-monitor`
+- 生成：`data/monitor_status.json` + `data/monitor_status.md`
+- 页面：`/monitor`
+
+## Direct Incremental Sources
+
+- 生成：`npm run update-incremental`
+- 数据文件：`data/incremental_sources.json` + `data/incremental_sources.md`
+- 作用：直接抓 arXiv + 官方 RSS/TOC，缩短新内容进入网站的延迟
+
+## First Principles Lens
+
+- 生成：`npm run update-first-principles`
+- 数据文件：`data/first_principles_lens.json` + `data/first_principles_lens.md`
+- 页面：`/first-principles`
+
 ## Paper Catalog (from SQLite)
 
 - 导出文件：`data/papers_catalog.json` + `data/papers_catalog.md`

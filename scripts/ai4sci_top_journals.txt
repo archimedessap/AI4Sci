@@ -1,0 +1,63 @@
+# Top-tier journals for AI4Sci supplementary ingestion.
+# Focus: general science flagships + high-impact domain journals where AI-for-science work is likely to appear.
+# One source per line. Lines starting with # are ignored.
+
+# General science flagships
+Nature
+Science
+Cell
+Proceedings of the National Academy of Sciences
+Nature Communications
+Science Advances
+
+# Nature / Science family
+Nature Methods
+Nature Machine Intelligence
+Nature Computational Science
+Nature Biotechnology
+Nature Medicine
+Nature Genetics
+Nature Neuroscience
+Nature Materials
+Nature Chemistry
+Nature Physics
+Nature Photonics
+Nature Climate Change
+Nature Geoscience
+Nature Astronomy
+Science Robotics
+Science Translational Medicine
+
+# Chemistry / materials
+Journal of the American Chemical Society
+Angewandte Chemie International Edition
+Advanced Materials
+ACS Central Science
+Chemical Science
+
+# Physics / applied math / scientific computing
+Physical Review Letters
+Physical Review X
+Nature Physics
+Journal of Computational Physics
+SIAM Journal on Scientific Computing
+
+# Biology / genomics / bioinformatics
+Genome Biology
+Nature Biotechnology
+Nature Genetics
+Nucleic Acids Research
+Bioinformatics
+Briefings in Bioinformatics
+
+# Medicine / imaging
+The Lancet
+The New England Journal of Medicine
+IEEE Transactions on Medical Imaging
+Medical Image Analysis
+
+# AI / methods journals
+Journal of Machine Learning Research
+IEEE Transactions on Pattern Analysis and Machine Intelligence
+Artificial Intelligence
+Machine Learning: Science and Technology

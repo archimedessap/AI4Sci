@@ -1,0 +1,7 @@
+# Conference fallback keywords for sources that are hard to resolve by OpenAlex source search.
+# One keyword per line. Lines starting with # are ignored.
+
+Uncertainty in Artificial Intelligence
+Intelligent Systems for Molecular Biology
+UAI
+ISMB

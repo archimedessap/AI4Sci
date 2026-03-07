@@ -23,6 +23,7 @@ from ingest_ai4sci_openalex import (
     iso_now,
     load_concept_cache,
     openalex_url,
+    parse_ai_concepts,
     parse_leaf_domains,
     parse_work_concepts,
     save_concept_cache,
@@ -77,6 +78,15 @@ def load_list_file(path: Path | None) -> list[str]:
             continue
         items.append(line)
     return items
+
+
+def load_list_files(paths: list[Path] | None) -> list[str]:
+    if not paths:
+        return []
+    out: list[str] = []
+    for path in paths:
+        out.extend(load_list_file(path))
+    return out
 
 
 def merge_lists(*lists: list[str]) -> list[str]:
@@ -198,21 +208,39 @@ def main() -> int:
         default=None,
         help="Comma-separated search keywords (for global OpenAlex search).",
     )
-    ap.add_argument("--keywords-file", type=Path, default=None, help="File with one keyword per line.")
+    ap.add_argument("--keywords-file", type=Path, action="append", default=None, help="File with one keyword per line. Can be passed multiple times.")
     ap.add_argument(
         "--sources",
         type=str,
         default=None,
         help="Comma-separated journal names, ISSNs, or OpenAlex source ids.",
     )
-    ap.add_argument("--sources-file", type=Path, default=None, help="File with one journal/source per line.")
+    ap.add_argument(
+        "--sources-file",
+        type=Path,
+        action="append",
+        default=None,
+        help="File with one journal/source per line. Can be passed multiple times.",
+    )
+    ap.add_argument(
+        "--ai-concepts",
+        type=str,
+        default="Machine learning,Artificial intelligence,Deep learning",
+        help="Comma-separated OpenAlex concept ids or names used for source-based AI filtering.",
+    )
     ap.add_argument(
         "--ai-keywords",
         type=str,
         default=None,
-        help="Comma-separated AI keywords used when querying sources (defaults to --keywords or a small preset).",
+        help="Comma-separated AI keywords used for source search fallback mode (when --ai-concepts is empty).",
     )
-    ap.add_argument("--ai-keywords-file", type=Path, default=None, help="File with one AI keyword per line.")
+    ap.add_argument(
+        "--ai-keywords-file",
+        type=Path,
+        action="append",
+        default=None,
+        help="File with one AI keyword per line. Can be passed multiple times.",
+    )
     ap.add_argument(
         "--domains",
         type=str,
@@ -231,7 +259,7 @@ def main() -> int:
         help="Max works per search query (default: 800, 0 = no limit).",
     )
     ap.add_argument("--max-works", type=int, default=0, help="Stop after N works total (0 = no limit).")
-    ap.add_argument("--sleep", type=float, default=0.15, help="Sleep seconds between API calls (default 0.15).")
+    ap.add_argument("--sleep", type=float, default=0.25, help="Sleep seconds between API calls (default 0.25).")
     ap.add_argument(
         "--allow-no-domain",
         action="store_true",
@@ -259,11 +287,12 @@ def main() -> int:
     )
     args = ap.parse_args()
 
-    keywords = merge_lists(parse_csv_list(args.keywords), load_list_file(args.keywords_file))
-    sources_raw = merge_lists(parse_csv_list(args.sources), load_list_file(args.sources_file))
-    ai_keywords = merge_lists(parse_csv_list(args.ai_keywords), load_list_file(args.ai_keywords_file))
+    keywords = merge_lists(parse_csv_list(args.keywords), load_list_files(args.keywords_file))
+    sources_raw = merge_lists(parse_csv_list(args.sources), load_list_files(args.sources_file))
+    ai_keywords = merge_lists(parse_csv_list(args.ai_keywords), load_list_files(args.ai_keywords_file))
+    ai_concepts: list[str] = []
 
-    if sources_raw and not ai_keywords:
+    if sources_raw and not ai_keywords and (not args.ai_concepts or not args.ai_concepts.strip()):
         ai_keywords = keywords or list(DEFAULT_AI_KEYWORDS)
         print(f"[info] source queries use ai keywords: {', '.join(ai_keywords)}")
 
@@ -280,6 +309,8 @@ def main() -> int:
         raise SystemExit(f"Base data not found: {BASE_JSON}")
 
     cache = load_concept_cache()
+    if args.ai_concepts and args.ai_concepts.strip():
+        ai_concepts = parse_ai_concepts(args.ai_concepts, cache)
     base = json.loads(BASE_JSON.read_text("utf-8"))
     nodes: dict[str, Any] = base.get("nodes") or {}
 
@@ -333,6 +364,7 @@ def main() -> int:
             "from_date": from_date.isoformat(),
             "keywords": keywords,
             "sources": [s.raw for s in sources],
+            "ai_concepts": ai_concepts,
             "ai_keywords": ai_keywords,
             "allow_no_domain": bool(args.allow_no_domain),
         },
@@ -360,6 +392,18 @@ def main() -> int:
     )
 
     seen_openalex_ids: set[str] = set()
+
+    def fetch_works_page(params: dict[str, str]) -> dict[str, Any]:
+        delays = [0.0, 4.0, 12.0]
+        last_err: Exception | None = None
+        for delay in delays:
+            if delay > 0:
+                time.sleep(delay)
+            try:
+                return http_get_json(openalex_url("/works", params), retries=2, timeout=45)
+            except Exception as e:  # noqa: BLE001
+                last_err = e
+        raise RuntimeError(f"works page fetch failed after backoff: {params}") from last_err
 
     def ingest_work(work: dict[str, Any], *, now: str) -> None:
         nonlocal added, updated, errors, skipped_no_domain, skipped_seen
@@ -464,7 +508,11 @@ def main() -> int:
                 params["search"] = search
 
             time.sleep(max(0.0, args.sleep))
-            data = http_get_json(openalex_url("/works", params))
+            try:
+                data = fetch_works_page(params)
+            except Exception as e:  # noqa: BLE001
+                print(f"[warn] query failed, skip remaining pages for {label}: {e}")
+                break
             results = data.get("results") or []
             if not results:
                 break
@@ -487,38 +535,52 @@ def main() -> int:
 
         print(f"[ok] {label}: seen={query_seen} total_seen={total_seen}")
 
-    base_filter = f"from_publication_date:{from_date.isoformat()}"
-    for kw in keywords:
-        run_query(label=f"keyword:{kw}", filter_str=base_filter, search=kw)
+    run_exc: Exception | None = None
+    try:
+        base_filter = f"from_publication_date:{from_date.isoformat()}"
+        for kw in keywords:
+            run_query(label=f"keyword:{kw}", filter_str=base_filter, search=kw)
 
-    if sources:
-        for src in sources:
-            src_label = src.display_name or src.source_id or src.issn or src.raw
-            if src.source_id:
-                src_filter = f"primary_location.source.id:{src.source_id}"
-            elif src.issn:
-                src_filter = f"primary_location.source.issn:{src.issn}"
-            else:
-                print(f"[warn] source missing id/issn, skipping: {src.raw}")
-                continue
+        if sources:
+            ai_filter = "|".join(ai_concepts) if ai_concepts else ""
+            for src in sources:
+                src_label = src.display_name or src.source_id or src.issn or src.raw
+                if src.source_id:
+                    src_filter = f"primary_location.source.id:{src.source_id}"
+                elif src.issn:
+                    src_filter = f"primary_location.source.issn:{src.issn}"
+                else:
+                    print(f"[warn] source missing id/issn, skipping: {src.raw}")
+                    continue
 
-            if not ai_keywords:
-                raise SystemExit("No AI keywords available for source queries; set --ai-keywords.")
+                if ai_filter:
+                    filter_str = ",".join([src_filter, f"concept.id:{ai_filter}", base_filter])
+                    run_query(label=f"source:{src_label}", filter_str=filter_str, search=None)
+                else:
+                    if not ai_keywords:
+                        raise SystemExit("No AI keywords available for source queries; set --ai-keywords.")
+                    for kw in ai_keywords:
+                        filter_str = ",".join([src_filter, base_filter])
+                        run_query(label=f"source:{src_label} + {kw}", filter_str=filter_str, search=kw)
+    except Exception as e:  # noqa: BLE001
+        errors += 1
+        run_exc = e
+    finally:
+        finished_at = iso_now()
+        try:
+            con.execute(
+                "UPDATE sync_runs SET finished_at = ?, added = ?, updated = ?, errors = ? WHERE id = ?",
+                (finished_at, added, updated, errors, run_id),
+            )
+            con.commit()
+        finally:
+            con.close()
 
-            for kw in ai_keywords:
-                filter_str = ",".join([src_filter, base_filter])
-                run_query(label=f"source:{src_label} + {kw}", filter_str=filter_str, search=kw)
+        save_concept_cache(cache)
+        save_source_cache(source_cache)
 
-    finished_at = iso_now()
-    con.execute(
-        "UPDATE sync_runs SET finished_at = ?, added = ?, updated = ?, errors = ? WHERE id = ?",
-        (finished_at, added, updated, errors, run_id),
-    )
-    con.commit()
-    con.close()
-
-    save_concept_cache(cache)
-    save_source_cache(source_cache)
+    if run_exc is not None:
+        raise run_exc
 
     print(
         "[done] supplement ingest",

@@ -218,6 +218,22 @@ def sort_key(p: dict[str, Any]) -> tuple[int, int, str]:
     return (cited_i, year_i, date_s)
 
 
+def recent_key(p: dict[str, Any]) -> tuple[str, int, int]:
+    date = p.get("publicationDate")
+    year = p.get("publicationYear")
+    cited = p.get("citedBy")
+    date_s = str(date) if isinstance(date, str) else ""
+    try:
+        year_i = int(year) if year is not None else 0
+    except Exception:
+        year_i = 0
+    try:
+        cited_i = int(cited) if cited is not None else 0
+    except Exception:
+        cited_i = 0
+    return (date_s, year_i, cited_i)
+
+
 def export_catalog(
     *,
     db_path: Path,
@@ -281,11 +297,43 @@ def export_catalog(
             items.sort(key=sort_key, reverse=True)
             keep_ids.update({p["id"] for p in items[:k]})
 
-        all_papers = [p for p in papers.values() if p.get("id") in keep_ids]
-        all_papers.sort(key=sort_key, reverse=True)
-        if max_total > 0 and len(all_papers) > max_total:
-            # Safety cap (may reduce some domain coverage if max_total is too low).
-            all_papers = all_papers[: max_total]
+        selected = [p for p in papers.values() if p.get("id") in keep_ids]
+        selected.sort(key=sort_key, reverse=True)
+
+        # Keep recent papers without domain links as well; this matters for direct-source
+        # incremental ingestion where a paper may be fresh but not yet confidently mapped.
+        extras = [p for p in papers.values() if p.get("id") not in keep_ids]
+        extras.sort(key=sort_key, reverse=True)
+
+        recent_reserve = 0
+        if max_total > 0:
+            recent_reserve = min(250, max(50, max_total // 20))
+        force_candidates = [
+            p
+            for p in papers.values()
+            if str(p.get("id") or "").startswith("incremental:") or not (p.get("domains") or [])
+        ]
+        forced_recent = (
+            sorted(force_candidates, key=recent_key, reverse=True)[:recent_reserve] if recent_reserve > 0 else []
+        )
+        forced_ids = {p["id"] for p in forced_recent}
+
+        if max_total > 0:
+            remaining = [p for p in selected + extras if p["id"] not in forced_ids]
+            remaining.sort(key=sort_key, reverse=True)
+            room = max(0, max_total - len(forced_recent))
+            all_papers = forced_recent + remaining[:room]
+        else:
+            all_papers = forced_recent + [p for p in selected + extras if p["id"] not in forced_ids]
+        seen_ids: set[str] = set()
+        deduped: list[dict[str, Any]] = []
+        for p in all_papers:
+            pid = p.get("id")
+            if not isinstance(pid, str) or pid in seen_ids:
+                continue
+            seen_ids.add(pid)
+            deduped.append(p)
+        all_papers = deduped
     else:
         all_papers = list(papers.values())
         all_papers.sort(key=sort_key, reverse=True)

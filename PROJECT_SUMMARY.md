@@ -12,6 +12,7 @@
 
 ## Data Sources
 - OpenAlex API (includes arXiv) for domain-level metrics and paper ingestion.
+- Direct incremental sources: arXiv API + official journal RSS/TOC feeds.
 - Manual daily updates: `updates/YYYY-MM-DD*.md`.
 - LLM outputs (optional) generated from the local paper library.
 
@@ -19,12 +20,13 @@
 1) `scripts/update_progress_openalex.py` -> `web/data/base.json`
 2) `scripts/ingest_ai4sci_openalex.py` -> `data/papers.sqlite`
 3) `scripts/ingest_ai4sci_openalex_supplement.py` -> supplement keyword/journal ingestion into SQLite
-4) `scripts/tag_ai_methods.py` -> method tags in SQLite
-5) `scripts/export_papers_catalog.py` -> `web/data/papers_catalog.json` (+ `.md`)
-6) `scripts/analyze_*` -> `web/data/problem_method_map.json`, `coverage_report.json`, `top_papers_last_year.json`, `domain_extra_metrics.json`
-7) `scripts/update_daily_updates.py` -> `web/data/daily_updates.json` (+ `.md`)
-8) `scripts/judge_*_llm.py` -> optional LLM-derived layers and auto overrides
-9) Admin overrides -> `web/data/overrides.json` via `/admin`
+4) `scripts/ingest_incremental_sources.py` -> arXiv + RSS/TOC incremental ingestion into SQLite + `web/data/incremental_sources.json`
+5) `scripts/tag_ai_methods.py` -> method tags in SQLite
+6) `scripts/export_papers_catalog.py` -> `web/data/papers_catalog.json` (+ `.md`)
+7) `scripts/analyze_*` -> `web/data/problem_method_map.json`, `coverage_report.json`, `top_papers_last_year.json`, `domain_extra_metrics.json`
+8) `scripts/update_daily_updates.py` -> `web/data/daily_updates.json` (+ `.md`)
+9) `scripts/judge_*_llm.py` -> optional LLM-derived layers and auto overrides
+10) Admin overrides -> `web/data/overrides.json` via `/admin`
 
 ## Repository Layout
 - `scripts/`: Python pipelines and analysis tools.
@@ -39,6 +41,8 @@
 - `scripts/update_progress_openalex.py`: updates `web/data/base.json` from OpenAlex concepts.
 - `scripts/ingest_ai4sci_openalex.py`: ingests papers to SQLite.
 - `scripts/ingest_ai4sci_openalex_supplement.py`: keyword/journal supplement ingest to improve recall.
+  - Default packs now include `scripts/ai4sci_sources.txt` + `scripts/ai4sci_top_journals.txt`.
+- `scripts/ingest_incremental_sources.py`: direct-source incremental ingestion from arXiv + official RSS/TOC feeds.
 - `scripts/tag_ai_methods.py`: heuristic method tags (CNN/GNN/Transformer/LLM/etc).
 - `scripts/export_papers_catalog.py`: exports `web/data/papers_catalog.json`.
 - `scripts/analyze_problem_method_map.py`: generates `web/data/problem_method_map.json`.
@@ -59,6 +63,8 @@
 - `/problem-method` problem-method heatmap
 - `/coverage` coverage table
 - `/trends` milestones & trends (snapshot time series)
+- `/first-principles` first-principles analysis + watchboard
+- `/monitor` operational monitor console
 - `/top` top papers (last-year window)
 - `/methodology` methodology notes
 - `/admin` admin overrides (requires `ADMIN_TOKEN`)
@@ -91,12 +97,16 @@
 - `web/data/top_papers_last_year.json`: last-year top papers
 - `web/data/daily_updates.json`: daily updates classified
 - `web/data/progress_history.json`: progress snapshots (time series)
+- `web/data/first_principles_lens.json`: first-principles axes + watchboard
+- `web/data/incremental_sources.json`: direct-source incremental hits + feed status
+- `web/data/monitor_status.json`: operational monitor / freshness / alerts
 - `web/data/discovery_layers.json`, `web/data/formal_layers.json`: LLM layer outputs
 
 ## Running Locally
 - Update pipeline:
   - `python3 scripts/update_all.py --daily-updates`
   - `python3 scripts/update_all.py --daily-updates --daily-updates-no-llm`
+  - `python3 scripts/ingest_incremental_sources.py`
 - Web dev:
   - `cd web && npm run dev`
 - Web prod:
@@ -104,5 +114,8 @@
 
 ## Scheduling Updates
 - Recommended: daily schedule to run `scripts/update_all.py`.
-- Local Mac example uses `launchd` (not tracked in repo).
-- `/.github/workflows/daily-update.yml` exists for GitHub Actions (optional).
+- Preferred operational split:
+  - Hourly lightweight monitor: `python3 scripts/run_monitor_cycle.py --mode fast --no-llm`
+  - Daily full refresh: `python3 scripts/run_monitor_cycle.py --mode daily-full`
+- Local Mac templates are now tracked under `ops/launchd/`.
+- GitHub Actions daily refresh exists at `.github/workflows/daily-update.yml`.
