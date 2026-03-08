@@ -107,6 +107,12 @@ def main() -> int:
         help="Skip method tagging step.",
     )
     ap.add_argument(
+        "--tag-updated-since-hours",
+        type=int,
+        default=336,
+        help="Only retag papers updated within the last N hours (default: 336, 0 = entire DB).",
+    )
+    ap.add_argument(
         "--skip-exports",
         action="store_true",
         help="Skip exporting / analyzing web data files (papers catalog, maps, etc).",
@@ -203,7 +209,10 @@ def main() -> int:
         run(cmd)
 
     if not args.skip_tags:
-        run([py, str(ROOT / "scripts" / "tag_ai_methods.py"), "--db", str(args.db), "--only-missing"])
+        cmd = [py, str(ROOT / "scripts" / "tag_ai_methods.py"), "--db", str(args.db), "--only-missing"]
+        if int(args.tag_updated_since_hours) > 0:
+            cmd.extend(["--updated-since-hours", str(int(args.tag_updated_since_hours))])
+        run(cmd)
 
     if not args.skip_exports:
         run([py, str(ROOT / "scripts" / "export_papers_catalog.py"), "--db", str(args.db)])
