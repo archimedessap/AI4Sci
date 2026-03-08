@@ -85,7 +85,15 @@ class Alert:
 def command_specs(mode: str, *, py: str, no_llm: bool, catalog_days: int, db: Path) -> list[tuple[str, list[str]]]:
     if mode == "fast":
         fast_incremental = [py, str(ROOT / "scripts" / "ingest_incremental_sources.py"), "--db", str(db), "--lookback-hours", "336"]
-        fast_tags = [py, str(ROOT / "scripts" / "tag_ai_methods.py"), "--db", str(db), "--only-missing"]
+        fast_tags = [
+            py,
+            str(ROOT / "scripts" / "tag_ai_methods.py"),
+            "--db",
+            str(db),
+            "--only-missing",
+            "--updated-since-hours",
+            "72",
+        ]
         fast_updates = [py, str(ROOT / "scripts" / "update_daily_updates.py"), "--auto-from-catalog", "--catalog-days", str(int(catalog_days))]
         if no_llm:
             fast_updates.append("--no-llm")

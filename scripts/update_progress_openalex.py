@@ -4,12 +4,15 @@ from __future__ import annotations
 import argparse
 import json
 import math
+import os
 import re
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from datetime import UTC, date, datetime, timedelta
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 
@@ -19,6 +22,52 @@ CACHE_DIR = ROOT / ".cache"
 CONCEPT_CACHE_PATH = CACHE_DIR / "openalex_concepts.json"
 
 USER_AGENT = "AI4SciProgressAtlas/0.1 (OpenAlex; +https://openalex.org/)"
+TRANSIENT_HTTP_CODES = {429, 500, 502, 503, 504}
+
+
+def env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        return float(raw)
+    except Exception:
+        return default
+
+
+OPENALEX_EMAIL = (os.environ.get("OPENALEX_EMAIL") or "").strip()
+DEFAULT_REQUEST_SLEEP = max(0.0, env_float("OPENALEX_REQUEST_SLEEP", 0.3))
+OPENALEX_MIN_DELAY = max(0.0, env_float("OPENALEX_MIN_DELAY", 0.0))
+
+
+def retry_after_seconds(exc: urllib.error.HTTPError) -> float | None:
+    raw = exc.headers.get("Retry-After") if exc.headers else None
+    if not raw:
+        return None
+    try:
+        return max(1.0, float(raw))
+    except Exception:
+        pass
+    try:
+        dt = parsedate_to_datetime(raw)
+    except Exception:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    delta = (dt.astimezone(UTC) - datetime.now(tz=UTC)).total_seconds()
+    return max(1.0, delta)
+
+
+def retry_delay_seconds(attempt: int, exc: Exception) -> float:
+    if isinstance(exc, urllib.error.HTTPError):
+        retry_after = retry_after_seconds(exc)
+        if retry_after is not None:
+            return min(retry_after + 1.0, 600.0)
+        if exc.code == 429:
+            return min(15.0 * (2**attempt), 300.0)
+        if exc.code in TRANSIENT_HTTP_CODES:
+            return min(5.0 * (2**attempt), 120.0)
+    return min(2.0**attempt, 8.0)
 
 
 def _clamp01(x: float) -> float:
@@ -49,18 +98,31 @@ def http_get_json(url: str, *, retries: int = 5, timeout: int = 30) -> Any:
     last_err: Exception | None = None
     for attempt in range(retries):
         try:
+            if OPENALEX_MIN_DELAY > 0:
+                time.sleep(OPENALEX_MIN_DELAY)
             req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return json.load(resp)
+        except urllib.error.HTTPError as e:
+            last_err = e
+            if e.code not in TRANSIENT_HTTP_CODES:
+                raise
+            time.sleep(retry_delay_seconds(attempt, e))
+        except urllib.error.URLError as e:
+            last_err = e
+            time.sleep(retry_delay_seconds(attempt, e))
         except Exception as e:  # noqa: BLE001
             last_err = e
-            sleep_s = min(2.0 ** attempt, 8.0)
+            sleep_s = retry_delay_seconds(attempt, e)
             time.sleep(sleep_s)
     raise RuntimeError(f"GET failed after {retries} retries: {url}") from last_err
 
 
 def openalex_url(path: str, params: dict[str, str]) -> str:
-    qs = urllib.parse.urlencode(params)
+    q = dict(params)
+    if OPENALEX_EMAIL:
+        q.setdefault("mailto", OPENALEX_EMAIL)
+    qs = urllib.parse.urlencode(q)
     return f"https://api.openalex.org{path}?{qs}"
 
 
@@ -268,6 +330,12 @@ def main() -> int:
         default=0,
         help="Stop after updating N domains (0 = all).",
     )
+    ap.add_argument(
+        "--request-sleep",
+        type=float,
+        default=DEFAULT_REQUEST_SLEEP,
+        help="Sleep seconds between OpenAlex requests (default: env OPENALEX_REQUEST_SLEEP or 0.3).",
+    )
     args = ap.parse_args()
 
     if not BASE_PATH.exists():
@@ -338,6 +406,9 @@ def main() -> int:
     print(f"[info] domains_to_update={len(leaf_ids)} only={len(only_ids)} only_missing={bool(args.only_missing)}")
 
     domain_signals: dict[str, DomainSignals] = {}
+    request_sleep = max(0.0, float(args.request_sleep))
+    query_warnings: list[dict[str, str]] = []
+    updated_domains = 0
 
     for idx, nid in enumerate(leaf_ids, start=1):
         node = nodes[nid]
@@ -377,25 +448,29 @@ def main() -> int:
             f"to_publication_date:{_iso(last_year_start)}",
         )
 
-        # Rate limit a bit.
-        time.sleep(0.12)
-        total_recent = works_count(filter_str=base_filter)
-        time.sleep(0.12)
-        ai_recent = works_count(filter_str=ai_filter)
-        time.sleep(0.12)
-        ai_last_year = works_count(filter_str=ai_last_year_filter)
-        time.sleep(0.12)
-        ai_prev_year = works_count(filter_str=ai_prev_year_filter)
+        try:
+            time.sleep(request_sleep)
+            total_recent = works_count(filter_str=base_filter)
+            time.sleep(request_sleep)
+            ai_recent = works_count(filter_str=ai_filter)
+            time.sleep(request_sleep)
+            ai_last_year = works_count(filter_str=ai_last_year_filter)
+            time.sleep(request_sleep)
+            ai_prev_year = works_count(filter_str=ai_prev_year_filter)
 
-        term_counts: dict[str, int] = {}
-        for dim, terms in DIM_TERM_QUERIES.items():
-            for t in terms:
-                key = f"{dim}:{t}"
-                time.sleep(0.12)
-                term_counts[key] = works_count(filter_str=ai_filter, search=t)
+            term_counts: dict[str, int] = {}
+            for dim, terms in DIM_TERM_QUERIES.items():
+                for t in terms:
+                    key = f"{dim}:{t}"
+                    time.sleep(request_sleep)
+                    term_counts[key] = works_count(filter_str=ai_filter, search=t)
 
-        time.sleep(0.12)
-        top_works = works_top(filter_str=ai_filter, per_page=12)
+            time.sleep(request_sleep)
+            top_works = works_top(filter_str=ai_filter, per_page=12)
+        except Exception as e:  # noqa: BLE001
+            query_warnings.append({"domain": nid, "error": str(e)})
+            print(f"[warn] query failed for {nid} ({concept_display}): {e}")
+            continue
 
         domain_signals[nid] = DomainSignals(
             total_recent=total_recent,
@@ -405,9 +480,13 @@ def main() -> int:
             term_counts=term_counts,
             top_works=top_works,
         )
+        updated_domains += 1
 
         if idx % 5 == 0 or idx == len(leaf_ids):
             print(f"[ok] {idx}/{len(leaf_ids)} updated: {nid} ({concept_display})")
+
+    if not domain_signals:
+        raise SystemExit("OpenAlex progress update failed: no domains updated successfully.")
 
     max_log_volume = max((_log10p(s.ai_recent) for s in domain_signals.values()), default=1.0)
     max_log_volume = max(max_log_volume, 1e-6)
@@ -497,10 +576,15 @@ def main() -> int:
         "aiConcept": ai_concept_name,
         "aiConceptId": ai_concept_id,
         "termQueries": DIM_TERM_QUERIES,
+        "updatedDomains": updated_domains,
+        "warningCount": len(query_warnings),
+        "warnings": query_warnings[:20],
     }
 
     save_concept_cache(cache)
     BASE_PATH.write_text(json.dumps(base, indent=2, ensure_ascii=False) + "\n", "utf-8")
+    if query_warnings:
+        print(f"[warn] completed with {len(query_warnings)} domain-level query warnings")
     print(f"[done] wrote {BASE_PATH}")
     return 0
 

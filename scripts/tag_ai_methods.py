@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import argparse
 import re
-from datetime import UTC, datetime
+from datetime import UTC, datetime, timedelta
 from pathlib import Path
 from typing import Any
 
@@ -15,6 +15,10 @@ DEFAULT_DB = ROOT / "data" / "papers.sqlite"
 
 def iso_now() -> str:
     return datetime.now(tz=UTC).isoformat()
+
+
+def iso_hours_ago(hours: int) -> str:
+    return (datetime.now(tz=UTC) - timedelta(hours=max(0, int(hours)))).isoformat()
 
 
 def norm_text(v: Any) -> str:
@@ -155,6 +159,12 @@ def main() -> int:
     ap.add_argument("--min-confidence", type=float, default=0.65, help="Minimum confidence to store a tag (default: 0.65).")
     ap.add_argument("--overwrite", action="store_true", help="Overwrite existing method tags for processed papers.")
     ap.add_argument("--only-missing", action="store_true", help="Only tag papers without any method tags yet.")
+    ap.add_argument(
+        "--updated-since-hours",
+        type=int,
+        default=0,
+        help="Only scan papers updated within the last N hours (0 = all). Useful for incremental refreshes.",
+    )
     args = ap.parse_args()
 
     con = connect(args.db)
@@ -185,6 +195,11 @@ def main() -> int:
         con.commit()
 
     limit_sql = f"LIMIT {int(args.limit)}" if int(args.limit) > 0 else ""
+    where_sql = ""
+    query_params: list[object] = []
+    if int(args.updated_since_hours) > 0:
+        where_sql = "WHERE COALESCE(p.updated_at, p.created_at, '') >= ?"
+        query_params.append(iso_hours_ago(int(args.updated_since_hours)))
     cursor = con.execute(
         f"""
         SELECT
@@ -195,10 +210,12 @@ def main() -> int:
         FROM papers p
         LEFT JOIN paper_concepts pc ON pc.openalex_id = p.openalex_id
         LEFT JOIN concepts c ON c.concept_id = pc.concept_id
+        {where_sql}
         GROUP BY p.openalex_id
         ORDER BY COALESCE(p.cited_by_count, 0) DESC, COALESCE(p.publication_year, 0) DESC
         {limit_sql};
-        """
+        """,
+        query_params,
     )
 
     processed = 0
@@ -248,7 +265,9 @@ def main() -> int:
     con.commit()
     con.close()
 
-    print(f"[done] processed={processed} wrote_tags={wrote} skipped={skipped} min_conf={min_conf}")
+    print(
+        f"[done] processed={processed} wrote_tags={wrote} skipped={skipped} min_conf={min_conf} updated_since_hours={int(args.updated_since_hours)}"
+    )
     return 0
 
 

@@ -3,12 +3,15 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import re
 import time
+import urllib.error
 import urllib.parse
 import urllib.request
 from dataclasses import dataclass
 from datetime import UTC, date, datetime
+from email.utils import parsedate_to_datetime
 from pathlib import Path
 from typing import Any
 
@@ -29,23 +32,81 @@ CACHE_DIR = ROOT / ".cache"
 CONCEPT_CACHE_PATH = CACHE_DIR / "openalex_concepts.json"
 
 USER_AGENT = "AI4SciProgressAtlas/0.2 (OpenAlex; +https://openalex.org/)"
+TRANSIENT_HTTP_CODES = {429, 500, 502, 503, 504}
+
+
+def env_float(name: str, default: float) -> float:
+    raw = os.environ.get(name)
+    if raw is None or not raw.strip():
+        return default
+    try:
+        return float(raw)
+    except Exception:
+        return default
+
+
+OPENALEX_EMAIL = (os.environ.get("OPENALEX_EMAIL") or "").strip()
+OPENALEX_MIN_DELAY = max(0.0, env_float("OPENALEX_MIN_DELAY", 0.0))
+
+
+def retry_after_seconds(exc: urllib.error.HTTPError) -> float | None:
+    raw = exc.headers.get("Retry-After") if exc.headers else None
+    if not raw:
+        return None
+    try:
+        return max(1.0, float(raw))
+    except Exception:
+        pass
+    try:
+        dt = parsedate_to_datetime(raw)
+    except Exception:
+        return None
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=UTC)
+    delta = (dt.astimezone(UTC) - datetime.now(tz=UTC)).total_seconds()
+    return max(1.0, delta)
+
+
+def retry_delay_seconds(attempt: int, exc: Exception) -> float:
+    if isinstance(exc, urllib.error.HTTPError):
+        retry_after = retry_after_seconds(exc)
+        if retry_after is not None:
+            return min(retry_after + 1.0, 600.0)
+        if exc.code == 429:
+            return min(15.0 * (2**attempt), 300.0)
+        if exc.code in TRANSIENT_HTTP_CODES:
+            return min(5.0 * (2**attempt), 120.0)
+    return min(2.0**attempt, 8.0)
 
 
 def http_get_json(url: str, *, retries: int = 5, timeout: int = 40) -> Any:
     last_err: Exception | None = None
     for attempt in range(retries):
         try:
+            if OPENALEX_MIN_DELAY > 0:
+                time.sleep(OPENALEX_MIN_DELAY)
             req = urllib.request.Request(url, headers={"User-Agent": USER_AGENT})
             with urllib.request.urlopen(req, timeout=timeout) as resp:
                 return json.load(resp)
+        except urllib.error.HTTPError as e:
+            last_err = e
+            if e.code not in TRANSIENT_HTTP_CODES:
+                raise
+            time.sleep(retry_delay_seconds(attempt, e))
+        except urllib.error.URLError as e:
+            last_err = e
+            time.sleep(retry_delay_seconds(attempt, e))
         except Exception as e:  # noqa: BLE001
             last_err = e
-            time.sleep(min(2.0**attempt, 8.0))
+            time.sleep(retry_delay_seconds(attempt, e))
     raise RuntimeError(f"GET failed after {retries} retries: {url}") from last_err
 
 
 def openalex_url(path: str, params: dict[str, str]) -> str:
-    return f"https://api.openalex.org{path}?{urllib.parse.urlencode(params)}"
+    q = dict(params)
+    if OPENALEX_EMAIL:
+        q.setdefault("mailto", OPENALEX_EMAIL)
+    return f"https://api.openalex.org{path}?{urllib.parse.urlencode(q)}"
 
 
 def load_concept_cache() -> dict[str, dict[str, str]]:

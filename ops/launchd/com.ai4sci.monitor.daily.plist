@@ -9,7 +9,7 @@
   <array>
     <string>/bin/zsh</string>
     <string>-lc</string>
-    <string>cd __PROJECT_ROOT__ &amp;&amp; __PYTHON_BIN__ scripts/run_monitor_cycle.py --mode daily-full</string>
+    <string>cd __PROJECT_ROOT__ &amp;&amp; OPENALEX_EMAIL="__OPENALEX_EMAIL__" __PYTHON_BIN__ scripts/run_monitor_cycle.py --mode daily-full --no-llm</string>
   </array>
 
   <key>StartCalendarInterval</key>
