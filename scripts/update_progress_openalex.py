@@ -62,11 +62,11 @@ def retry_delay_seconds(attempt: int, exc: Exception) -> float:
     if isinstance(exc, urllib.error.HTTPError):
         retry_after = retry_after_seconds(exc)
         if retry_after is not None:
-            return min(retry_after + 1.0, 600.0)
+            return min(retry_after + 1.0, 90.0)
         if exc.code == 429:
-            return min(15.0 * (2**attempt), 300.0)
+            return min(5.0 * (2**attempt), 60.0)
         if exc.code in TRANSIENT_HTTP_CODES:
-            return min(5.0 * (2**attempt), 120.0)
+            return min(3.0 * (2**attempt), 30.0)
     return min(2.0**attempt, 8.0)
 
 
@@ -94,7 +94,7 @@ def _iso(d: date) -> str:
     return d.isoformat()
 
 
-def http_get_json(url: str, *, retries: int = 5, timeout: int = 30) -> Any:
+def http_get_json(url: str, *, retries: int = 3, timeout: int = 30) -> Any:
     last_err: Exception | None = None
     for attempt in range(retries):
         try:
